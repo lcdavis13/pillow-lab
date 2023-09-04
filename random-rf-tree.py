@@ -24,10 +24,10 @@ def gaussian_tree_2d(mean, var, bounds, child_num, depth, scale_factor):
         points = []
         for i in range(child_num):
             new_points = gaussian_tree_2d(loc, var*scale_factor, bounds, child_num, depth - 1, scale_factor)
-            points = points + new_points
+            points.append(new_points)
         return points
     else:
-        return [loc]
+        return loc
 
 def render_points_grouped(img, points, groups):
     def rainbow(x, xmax):
@@ -44,6 +44,7 @@ scale_factor = 0.25
 
 s = min(w, h)
 points = gaussian_tree_2d((w/2, h/2), np.identity(2)*s*4.0, (0, 0, w-1, h-1), child_num, depth, scale_factor)
+flatpoints = np.reshape(points, (-1, 2)).tolist()
 
-render_points_grouped(img, points, 16)#child_num**(depth - 1))
+render_points_grouped(img, flatpoints, 16)#child_num**(depth - 1))
 img.show()
