@@ -5,9 +5,6 @@ from pathlib import Path
 
 w = 128
 h = 128
-img = Image.new("RGB", (w,h))
-draw = ImageDraw.Draw(img)
-
 
 def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
     def sample(mean, var):
@@ -40,20 +37,22 @@ def render_points_grouped(draw, points, groups):
     for i,point in enumerate(points):
         draw.point(point, rainbow((i*groups)//len(points), groups))
 
-def render_tree(resolution, tree):
+
+def render_tree_node(resolution, tree):
     w = resolution[0]
     h = resolution[1]
+    img = Image.new("RGB", (w, h))
+    draw = ImageDraw.Draw(img)
+    points = np.reshape(tree, (-1, 2)).tolist()
+    render_points_grouped(draw, points, np.shape(tree)[0])
+    return img
 
+def render_tree(resolution, tree):
     image_tree = {}
 
     levels = len(np.shape(tree))
     if levels > 1:
-        img = Image.new("RGB", (w,h))
-        draw = ImageDraw.Draw(img)
-
-        points = np.reshape(tree, (-1, 2)).tolist()
-        render_points_grouped(draw, points, np.shape(tree)[0])
-
+        img = render_tree_node(resolution, tree)
         image_tree["img"] = img
 
     if levels > 2:
@@ -64,6 +63,7 @@ def render_tree(resolution, tree):
         image_tree["children"] = subtrees
 
     return image_tree
+
 
 def export_image_tree(tree, rootpath, rootname="tree"):
     def export_tree(tree, fpath, rootname, id=0):
@@ -93,7 +93,5 @@ tree = gaussian_tree_2d(mean=(w/2, h/2),
 image_tree = render_tree((w,h), tree)
 export_image_tree(image_tree, "./tree")
 
-flatpoints = np.reshape(tree, (-1, 2)).tolist()
-
-render_points_grouped(draw, flatpoints, 16)#child_num**(depth - 1))
+img = render_tree_node((w,h), tree)
 img.show()
