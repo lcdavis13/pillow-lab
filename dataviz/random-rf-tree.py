@@ -27,37 +27,57 @@ def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
         return loc
 
 
-def draw_points_grouped(draw, points, groups):
-    def rainbow(x, xmax):
-        t = colorsys.hsv_to_rgb(x / float(xmax), 1.0, 1.0)
-        return tuple(int(c*255) for c in t)
-
+def draw_points_grouped(draw, points, groups, color_scheme):
     for i,point in enumerate(points):
-        draw.point(point, rainbow((i*groups)//len(points), groups))
+        c = ((i*groups)//len(points)) / groups
+        draw.point(point, color_scheme(c))
 
 
-def render_tree_node(resolution, tree):
+def draw_points(draw, points, color):
+    for point in points:
+        draw.point(point, color)
+
+
+def render_tree_node_rainbow(draw, tree):
+    def rainbow(hue):
+        t = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+        return tuple(int(c*255) for c in t)
+    points = np.reshape(tree, (-1, 2)).tolist()
+    draw_points_grouped(draw, points, np.shape(tree)[0], rainbow)
+
+
+def render_tree_node(draw, tree, color):
+    points = np.reshape(tree, (-1, 2)).tolist()
+    draw_points(draw, points, color)
+
+
+def render_tree(resolution, tree, bg=None):
+    image_tree = {}
     w = resolution[0]
     h = resolution[1]
-    img = Image.new("RGB", (w, h))
-    draw = ImageDraw.Draw(img)
-    points = np.reshape(tree, (-1, 2)).tolist()
-    draw_points_grouped(draw, points, np.shape(tree)[0])
-    return img
 
-
-def render_tree(resolution, tree):
-    image_tree = {}
+    if bg is None:
+        bg = Image.new("RGB", (w, h))
 
     levels = len(np.shape(tree))
     if levels > 1:
-        img = render_tree_node(resolution, tree)
+        img = bg.copy()
+        draw = ImageDraw.Draw(img)
+        render_tree_node_rainbow(draw, tree)
         image_tree["img"] = img
 
     if levels > 2:
+        # render new background
+        img = np.asarray(bg, dtype="int32")
+        img = img/2.0
+        img = Image.fromarray(np.asarray(img, dtype="uint8"), "RGB")
+        draw = ImageDraw.Draw(img)
+        render_tree_node(draw, tree, (127, 127, 127))
+
+        # render subtrees
         subtrees = []
         for i,subtree in enumerate(tree):
-            subtree = render_tree(resolution, subtree)
+            subtree = render_tree(resolution, subtree, img)
             subtrees.append(subtree)
         image_tree["children"] = subtrees
 
