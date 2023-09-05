@@ -29,7 +29,7 @@ def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
         return loc
 
 
-def render_points_grouped(draw, points, groups):
+def draw_points_grouped(draw, points, groups):
     def rainbow(x, xmax):
         t = colorsys.hsv_to_rgb(x / float(xmax), 1.0, 1.0)
         return tuple(int(c*255) for c in t)
@@ -44,7 +44,7 @@ def render_tree_node(resolution, tree):
     img = Image.new("RGB", (w, h))
     draw = ImageDraw.Draw(img)
     points = np.reshape(tree, (-1, 2)).tolist()
-    render_points_grouped(draw, points, np.shape(tree)[0])
+    draw_points_grouped(draw, points, np.shape(tree)[0])
     return img
 
 def render_tree(resolution, tree):
@@ -80,6 +80,24 @@ def export_image_tree(tree, rootpath, rootname="tree"):
     export_tree(tree, rootpath, rootname)
 
 
+def animate_image_tree(tree, layer_times):
+    def animate_tree_list(tree, layer_times):
+        img_seq = []
+        dur_seq = []
+        for node in tree:
+            if "img" in node:
+                img_seq.append(node["img"])
+                dur_seq.append(layer_times[0])
+            if "children" in node:
+                img_subseq, dur_subseq = animate_tree_list(node["children"], layer_times[1:])
+                img_seq += img_subseq
+                dur_seq += dur_subseq
+        return img_seq, dur_seq
+
+    img_seq, dur_seq = animate_tree_list([tree], layer_times)
+    img_seq[0].save('./test.gif', save_all=True, optimize=True, append_images=img_seq[1:], duration=dur_seq, loop=0)
+
+
 
 child_num = 16
 depth = 4
@@ -92,6 +110,6 @@ tree = gaussian_tree_2d(mean=(w/2, h/2),
                         child_num=child_num, depth=depth, scale_factor=scale_factor)
 image_tree = render_tree((w,h), tree)
 export_image_tree(image_tree, "./tree")
+animate_image_tree(image_tree, [500, 250, 125])
 
-img = render_tree_node((w,h), tree)
-img.show()
+image_tree["img"].show()
