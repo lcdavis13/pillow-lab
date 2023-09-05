@@ -38,7 +38,7 @@ def draw_points(draw, points, color):
         draw.point(point, color)
 
 
-def render_tree_node_rainbow(draw, tree):
+def draw_tree_node_rainbow(draw, tree):
     def rainbow(hue):
         t = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
         return tuple(int(c*255) for c in t)
@@ -46,7 +46,7 @@ def render_tree_node_rainbow(draw, tree):
     draw_points_grouped(draw, points, np.shape(tree)[0], rainbow)
 
 
-def render_tree_node(draw, tree, color):
+def draw_tree_node(draw, tree, color):
     points = np.reshape(tree, (-1, 2)).tolist()
     draw_points(draw, points, color)
 
@@ -63,7 +63,7 @@ def render_tree(resolution, tree, bg=None):
     if levels > 1:
         img = bg.copy()
         draw = ImageDraw.Draw(img)
-        render_tree_node_rainbow(draw, tree)
+        draw_tree_node_rainbow(draw, tree)
         image_tree["img"] = img
 
     if levels > 2:
@@ -72,7 +72,7 @@ def render_tree(resolution, tree, bg=None):
         img = img/2.0
         img = Image.fromarray(np.asarray(img, dtype="uint8"), "RGB")
         draw = ImageDraw.Draw(img)
-        render_tree_node(draw, tree, (127, 127, 127))
+        draw_tree_node(draw, tree, (127, 127, 127))
 
         # render subtrees
         subtrees = []
