@@ -3,8 +3,6 @@ from PIL import Image,ImageDraw
 import numpy as np
 from pathlib import Path
 
-w = 128
-h = 128
 
 def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
     def sample(mean, var):
@@ -46,6 +44,7 @@ def render_tree_node(resolution, tree):
     points = np.reshape(tree, (-1, 2)).tolist()
     draw_points_grouped(draw, points, np.shape(tree)[0])
     return img
+
 
 def render_tree(resolution, tree):
     image_tree = {}
@@ -98,18 +97,21 @@ def animate_image_tree(tree, layer_times):
     img_seq[0].save('./test.gif', save_all=True, optimize=True, append_images=img_seq[1:], duration=dur_seq, loop=0)
 
 
+if __name__ == "__main__":
+    w = 128
+    h = 128
+    child_num = 16
+    depth = 4
+    scale_factor = 0.25
 
-child_num = 16
-depth = 4
-scale_factor = 0.25
+    s = min(w, h)
+    tree = gaussian_tree_2d(mean=(w/2, h/2),
+                            cov=np.identity(2) * s * 4.0,
+                            bounds=(0, 0, w - 1, h - 1),
+                            child_num=child_num, depth=depth, scale_factor=scale_factor)
+    image_tree = render_tree((w,h), tree)
+    export_image_tree(image_tree, "./tree")
+    animate_image_tree(image_tree, [500, 250, 125])
 
-s = min(w, h)
-tree = gaussian_tree_2d(mean=(w/2, h/2),
-                        cov=np.identity(2) * s * 4.0,
-                        bounds=(0, 0, w - 1, h - 1),
-                        child_num=child_num, depth=depth, scale_factor=scale_factor)
-image_tree = render_tree((w,h), tree)
-export_image_tree(image_tree, "./tree")
-animate_image_tree(image_tree, [500, 250, 125])
+    image_tree["img"].show()
 
-image_tree["img"].show()
