@@ -79,7 +79,7 @@ def export_image_tree(tree, rootpath, rootname="tree"):
     export_tree(tree, rootpath, rootname)
 
 
-def animate_image_tree(tree, layer_times):
+def animate_image_tree(tree, layer_times, fpath):
     def animate_tree_list(tree, layer_times):
         img_seq = []
         dur_seq = []
@@ -94,7 +94,7 @@ def animate_image_tree(tree, layer_times):
         return img_seq, dur_seq
 
     img_seq, dur_seq = animate_tree_list([tree], layer_times)
-    img_seq[0].save('./test.gif', save_all=True, optimize=True, append_images=img_seq[1:], duration=dur_seq, loop=0)
+    img_seq[0].save(fpath, save_all=True, optimize=True, append_images=img_seq[1:], duration=dur_seq, loop=0)
 
 
 if __name__ == "__main__":
@@ -110,8 +110,8 @@ if __name__ == "__main__":
                             bounds=(0, 0, w - 1, h - 1),
                             child_num=child_num, depth=depth, scale_factor=scale_factor)
     image_tree = render_tree((w,h), tree)
-    export_image_tree(image_tree, "./tree")
-    animate_image_tree(image_tree, [500, 250, 125])
+    export_image_tree(image_tree, "./random-rf-tree")
+    animate_image_tree(image_tree, [500, 250, 125], './random-rf-tree/tree.gif')
 
     image_tree["img"].show()
 
