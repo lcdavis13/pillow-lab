@@ -1,7 +1,8 @@
 import colorsys
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageOps
 import numpy as np
 from pathlib import Path
+import subprocess, os, platform
 
 
 def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
@@ -66,18 +67,18 @@ def render_tree(resolution, tree, bg=None):
         draw_tree_node_rainbow(draw, tree)
         image_tree["img"] = img
 
-    if levels > 2:
         # render new background
-        img = np.asarray(bg, dtype="int32")
-        img = img/2.0
-        img = Image.fromarray(np.asarray(img, dtype="uint8"), "RGB")
-        draw = ImageDraw.Draw(img)
-        draw_tree_node(draw, tree, (127, 127, 127))
+        newbg_img = img.copy()
+        newbg_img = np.asarray(newbg_img, dtype="int32")
+        if levels > 3:
+            newbg_img = np.vectorize(myfunc)(newbg_img)
+        newbg_img = newbg_img / 2.0
+        newbg_img = Image.fromarray(np.asarray(newbg_img, dtype="uint8"), "RGB")
 
         # render subtrees
         subtrees = []
         for i,subtree in enumerate(tree):
-            subtree = render_tree(resolution, subtree, img)
+            subtree = render_tree(resolution, subtree, newbg_img)
             subtrees.append(subtree)
         image_tree["children"] = subtrees
 
@@ -118,6 +119,15 @@ def animate_image_tree(tree, layer_times, fpath):
 
 
 if __name__ == "__main__":
+    def open(fpath):
+        fpath = os.path.abspath(fpath)
+        if platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', fpath))
+        elif platform.system() == 'Windows':  # Windows
+            os.startfile(fpath)
+        else:  # linux variants
+            subprocess.call(('xdg-open', fpath))
+
     w = 128
     h = 128
     child_num = 16
@@ -133,5 +143,4 @@ if __name__ == "__main__":
     export_image_tree(image_tree, "./random-rf-tree")
     animate_image_tree(image_tree, [500, 250, 125], './random-rf-tree/tree.gif')
 
-    image_tree["img"].show()
-
+    open('./random-rf-tree/tree.gif')
