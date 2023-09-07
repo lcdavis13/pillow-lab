@@ -51,11 +51,17 @@ def draw_tree_node(draw, tree, color):
     points = np.reshape(tree, (-1, 2)).tolist()
     draw_points(draw, points, color)
 
-
 def render_tree(resolution, tree, bg=None):
     image_tree = {}
     w = resolution[0]
     h = resolution[1]
+
+    def whiteout(arr):
+        # Check if all elements along the last dimension are equal (and therefore already grayscale)
+        all_equal = np.all(arr == arr[..., -1:], axis=-1, keepdims=True)
+        # Replace values based on the condition
+        result = np.where(all_equal, arr, 255)
+        return result
 
     if bg is None:
         bg = Image.new("RGB", (w, h))
@@ -64,15 +70,18 @@ def render_tree(resolution, tree, bg=None):
     if levels > 1:
         img = bg.copy()
         draw = ImageDraw.Draw(img)
-        draw_tree_node_rainbow(draw, tree)
+        if levels == 2:
+            draw_tree_node(draw, tree, (255,255,255))
+        else:
+            draw_tree_node_rainbow(draw, tree)
         image_tree["img"] = img
 
         # render new background
         newbg_img = img.copy()
         newbg_img = np.asarray(newbg_img, dtype="int32")
         if levels > 3:
-            newbg_img = np.vectorize(myfunc)(newbg_img)
-        newbg_img = newbg_img / 2.0
+            newbg_img = whiteout(newbg_img)
+        newbg_img = newbg_img * 0.66
         newbg_img = Image.fromarray(np.asarray(newbg_img, dtype="uint8"), "RGB")
 
         # render subtrees
@@ -131,16 +140,17 @@ if __name__ == "__main__":
     w = 128
     h = 128
     child_num = 16
-    depth = 4
-    scale_factor = 0.25
+    depth = 5
+    cov_start = 6.0
+    scale_factor = 0.2
 
     s = min(w, h)
     tree = gaussian_tree_2d(mean=(w/2, h/2),
-                            cov=np.identity(2) * s * 4.0,
+                            cov=np.identity(2) * s * cov_start,
                             bounds=(0, 0, w - 1, h - 1),
                             child_num=child_num, depth=depth, scale_factor=scale_factor)
     image_tree = render_tree((w,h), tree)
     export_image_tree(image_tree, "./random-rf-tree")
-    animate_image_tree(image_tree, [500, 250, 125], './random-rf-tree/tree.gif')
+    animate_image_tree(image_tree, [1000, 500, 350, 200], './random-rf-tree/tree.gif')
 
     open('./random-rf-tree/tree.gif')
