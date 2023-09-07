@@ -1,7 +1,8 @@
 import colorsys
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageOps
 import numpy as np
 from pathlib import Path
+import subprocess, os, platform
 
 
 def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
@@ -27,37 +28,66 @@ def gaussian_tree_2d(mean, cov, bounds, child_num, depth, scale_factor):
         return loc
 
 
-def draw_points_grouped(draw, points, groups):
-    def rainbow(x, xmax):
-        t = colorsys.hsv_to_rgb(x / float(xmax), 1.0, 1.0)
-        return tuple(int(c*255) for c in t)
-
+def draw_points_grouped(draw, points, groups, color_scheme):
     for i,point in enumerate(points):
-        draw.point(point, rainbow((i*groups)//len(points), groups))
+        c = ((i*groups)//len(points)) / groups
+        draw.point(point, color_scheme(c))
 
 
-def render_tree_node(resolution, tree):
+def draw_points(draw, points, color):
+    for point in points:
+        draw.point(point, color)
+
+
+def draw_tree_node_rainbow(draw, tree):
+    def rainbow(hue):
+        t = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+        return tuple(int(c*255) for c in t)
+    points = np.reshape(tree, (-1, 2)).tolist()
+    draw_points_grouped(draw, points, np.shape(tree)[0], rainbow)
+
+
+def draw_tree_node(draw, tree, color):
+    points = np.reshape(tree, (-1, 2)).tolist()
+    draw_points(draw, points, color)
+
+def render_tree(resolution, tree, bg=None):
+    image_tree = {}
     w = resolution[0]
     h = resolution[1]
-    img = Image.new("RGB", (w, h))
-    draw = ImageDraw.Draw(img)
-    points = np.reshape(tree, (-1, 2)).tolist()
-    draw_points_grouped(draw, points, np.shape(tree)[0])
-    return img
 
+    def whiteout(arr):
+        # Check if all elements along the last dimension are equal (and therefore already grayscale)
+        all_equal = np.all(arr == arr[..., -1:], axis=-1, keepdims=True)
+        # Replace values based on the condition
+        result = np.where(all_equal, arr, 255)
+        return result
 
-def render_tree(resolution, tree):
-    image_tree = {}
+    if bg is None:
+        bg = Image.new("RGB", (w, h))
 
     levels = len(np.shape(tree))
     if levels > 1:
-        img = render_tree_node(resolution, tree)
+        img = bg.copy()
+        draw = ImageDraw.Draw(img)
+        if levels == 2:
+            draw_tree_node(draw, tree, (255,255,255))
+        else:
+            draw_tree_node_rainbow(draw, tree)
         image_tree["img"] = img
 
-    if levels > 2:
+        # render new background
+        newbg_img = img.copy()
+        newbg_img = np.asarray(newbg_img, dtype="int32")
+        if levels > 3:
+            newbg_img = whiteout(newbg_img)
+        newbg_img = newbg_img * 0.66
+        newbg_img = Image.fromarray(np.asarray(newbg_img, dtype="uint8"), "RGB")
+
+        # render subtrees
         subtrees = []
         for i,subtree in enumerate(tree):
-            subtree = render_tree(resolution, subtree)
+            subtree = render_tree(resolution, subtree, newbg_img)
             subtrees.append(subtree)
         image_tree["children"] = subtrees
 
@@ -98,20 +128,29 @@ def animate_image_tree(tree, layer_times, fpath):
 
 
 if __name__ == "__main__":
+    def open(fpath):
+        fpath = os.path.abspath(fpath)
+        if platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', fpath))
+        elif platform.system() == 'Windows':  # Windows
+            os.startfile(fpath)
+        else:  # linux variants
+            subprocess.call(('xdg-open', fpath))
+
     w = 128
     h = 128
     child_num = 16
-    depth = 4
-    scale_factor = 0.25
+    depth = 5
+    cov_start = 6.0
+    scale_factor = 0.2
 
     s = min(w, h)
     tree = gaussian_tree_2d(mean=(w/2, h/2),
-                            cov=np.identity(2) * s * 4.0,
+                            cov=np.identity(2) * s * cov_start,
                             bounds=(0, 0, w - 1, h - 1),
                             child_num=child_num, depth=depth, scale_factor=scale_factor)
     image_tree = render_tree((w,h), tree)
     export_image_tree(image_tree, "./random-rf-tree")
-    animate_image_tree(image_tree, [500, 250, 125], './random-rf-tree/tree.gif')
+    animate_image_tree(image_tree, [1000, 500, 350, 200], './random-rf-tree/tree.gif')
 
-    image_tree["img"].show()
-
+    open('./random-rf-tree/tree.gif')
