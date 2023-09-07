@@ -8,10 +8,12 @@ def compute_arc(end1, end2, angle):
     end1 and end2 must be specified in clockwise order.'''
     midpoint = ((end1[0] + end2[0]) / 2, (end1[1] + end2[1]) / 2)
     chordlength = np.sqrt((end1[0] - end2[0])**2 + (end1[1] - end2[1])**2)
-    radius = chordlength / (2 * np.sin(angle / 2))
+    halfsin = np.sin(angle / 2)
+    radius = chordlength / (2 * halfsin)
     midangle = np.arctan2(end2[1] - end1[1], end2[0] - end1[0]) + np.pi / 2
+    offset = np.sqrt(radius**2 - (chordlength / 2)**2)
 
-    center = (midpoint[0] + radius * np.cos(midangle / 2), midpoint[1] - radius * np.sin(midangle / 2))
+    center = (midpoint[0] + offset * np.cos(midangle), midpoint[1] + offset * np.sin(midangle))
     startangle = np.arctan2(end1[1] - center[1], end1[0] - center[0])
     endangle = np.arctan2(end2[1] - center[1], end2[0] - center[0])
 
@@ -24,16 +26,18 @@ def draw_arc(draw, center, radius, startangle, endangle, color=(255, 255, 255)):
 def woven_circles(center, radius, num_arcs, angle, num_subarcs, depth):
     def fractal_arc(end1, end2, angle, num_subarcs, depth):
         arc = compute_arc(end1, end2, angle)
+        if depth < 0:
+            return []
         if depth == 0:
             return [arc]
         else:
             dtheta = angle / num_arcs
             arcs = [arc]
             for i in range(num_arcs):
-                theta = i * dtheta
-                end1 = (center[0] + radius * np.cos(theta), center[1] + radius * np.sin(theta))
-                end2 = (center[0] + radius * np.cos(theta + dtheta), center[1] + radius * np.sin(theta + dtheta))
-                arcs += fractal_arc(end1, end2, angle, num_subarcs, depth - 1)
+                theta = i * dtheta + arc[2]
+                newend1 = (arc[0][0] + arc[1] * np.cos(theta), arc[0][1] + arc[1] * np.sin(theta))
+                newend2 = (arc[0][0] + arc[1] * np.cos(theta + dtheta), arc[0][1] + arc[1] * np.sin(theta + dtheta))
+                arcs += fractal_arc(newend1, newend2, angle, num_subarcs, depth - 1)
             return arcs
 
     arcs = [(center, radius, 0, np.pi*1.99)]
@@ -43,6 +47,7 @@ def woven_circles(center, radius, num_arcs, angle, num_subarcs, depth):
         end1 = (center[0] + radius * np.cos(theta), center[1] + radius * np.sin(theta))
         end2 = (center[0] + radius * np.cos(theta + dtheta), center[1] + radius * np.sin(theta + dtheta))
         arcs += fractal_arc(end1, end2, angle, num_subarcs, depth - 1)
+        #return arcs # DEBUG TODO REMOVE
     return arcs
 
 def draw_arcs(draw, arcs, color):
@@ -53,7 +58,7 @@ img = Image.new('RGB', (1000, 1000))
 draw = ImageDraw.Draw(img)
 
 #draw_arc(draw, (500, 500), 100, 0, np.pi*2.0/3.0, (255, 0, 0))
-arcs = woven_circles((500, 500), 400, 3, np.pi*2.0/3.0, 3, 3)
+arcs = woven_circles((500, 500), 200, 5, np.pi*3.5/4.0, 3, 3)
 draw_arcs(draw, arcs, (255, 0, 0))
 
 img.show()
