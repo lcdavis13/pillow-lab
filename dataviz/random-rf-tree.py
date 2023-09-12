@@ -1,5 +1,5 @@
 import colorsys
-from PIL import Image,ImageDraw,ImageOps
+from PIL import Image,ImageDraw
 import numpy as np
 from pathlib import Path
 import subprocess, os, platform
