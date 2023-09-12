@@ -1,4 +1,5 @@
-import colorsys
+"""Fractal arcs along the surface of an arc, which if extruded in 3D might resemble a fractal braid of cylinders."""
+
 from PIL import Image,ImageDraw
 import numpy as np
 
@@ -12,9 +13,9 @@ show_all_iterations = True
 show_complete_circles = True
 
 def compute_arc(end1, end2, angle):
-    '''end1 and end2 are tuples of (x,y) coordinates corresponding to the endpoints of the arc.
+    """end1 and end2 are tuples of (x,y) coordinates corresponding to the endpoints of the arc.
     angle is the angle of the arc in radians.
-    end1 and end2 must be specified in clockwise order.'''
+    end1 and end2 must be specified in clockwise order."""
     midpoint = ((end1[0] + end2[0]) / 2, (end1[1] + end2[1]) / 2)
     chordlength = np.sqrt((end1[0] - end2[0])**2 + (end1[1] - end2[1])**2)
     halfsin = np.sin(angle / 2)
